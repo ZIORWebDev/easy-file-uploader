@@ -1,5 +1,5 @@
 === Easy DragDrop File Uploader ===
-Contributors: reygcalantaol  
+Contributors: ziorwebdev, reygcalantaol  
 Tags: file upload, elementor, dragdrop, drag and drop, ajax upload
 Requires at least: 6.0
 Tested up to: 6.9

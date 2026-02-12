@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:  Easy DragDrop File Uploader
- * Plugin URI:   https://github.com/ZIORWebDev/easy-dragdrop-file-uploader
+ * Plugin URI:   https://ziorweb.dev/plugin/easy-dragdrop-file-uploader
  * Description:  Enhances Elementor Pro Forms and Contact Form 7 with a drag and drop uploader for seamless file uploads.
  * Author:       ZIORWeb.Dev
  * Author URI:   https://ziorweb.dev

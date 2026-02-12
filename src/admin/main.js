@@ -1,6 +1,13 @@
 import "./main.css";
 
 /**
+ * If elementor does not exists, exit.
+ */
+if (!elementor) {
+    return;
+}
+
+/**
  * Render the file uploader field in the editor.
  */
 elementor.hooks.addFilter('elementor_pro/forms/content_template/field/easy-dragdrop-upload', function (inputField, item, i, settings) { 

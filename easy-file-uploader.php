@@ -30,29 +30,43 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/gpl-2.0.txt>.
  */
 
-use ZIORWebDev\DragDrop\Classes\Plugin;
+use ZIORWebDev\DragDrop\Plugin;
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR' ) ) {
-	define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-}
+// Autoload vendor and project classes.
+require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 
-if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL' ) ) {
-	define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-}
+// Initialize the plugin.
+$plugin_instance = new Plugin( __FILE__ );
+$plugin_instance->init();
 
-if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE' ) ) {
-	define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE', __FILE__ );
-}
-
-require_once ZIORWEBDEV_DRAGDROP_PLUGIN_DIR . 'includes/functions.php';
-require_once ZIORWEBDEV_DRAGDROP_PLUGIN_DIR . 'includes/classes/class-plugin.php';
-
-$plugin_instance = Plugin::get_instance( __FILE__ );
-
+// Activation and deactivation hooks.
 register_activation_hook( __FILE__, array( $plugin_instance, 'activate_plugin' ) );
 register_deactivation_hook( __FILE__, array( $plugin_instance, 'deactivate_plugin' ) );
+
+
+
+
+// if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR' ) ) {
+// 	define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+// }
+
+// if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL' ) ) {
+// 	define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+// }
+
+// if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE' ) ) {
+// 	define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE', __FILE__ );
+// }
+
+// require_once ZIORWEBDEV_DRAGDROP_PLUGIN_DIR . 'includes/functions.php';
+// require_once ZIORWEBDEV_DRAGDROP_PLUGIN_DIR . 'includes/classes/class-plugin.php';
+
+// $plugin_instance = Plugin::get_instance( __FILE__ );
+
+// register_activation_hook( __FILE__, array( $plugin_instance, 'activate_plugin' ) );
+// register_deactivation_hook( __FILE__, array( $plugin_instance, 'deactivate_plugin' ) );

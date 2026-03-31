@@ -9,10 +9,7 @@
  * @since      1.0.0
  */
 
-namespace ZIORWebDev\DragDrop\Classes\Integrations;
-
-use function ZIORWebDev\DragDrop\Functions\decrypt_data;
-use function ZIORWebDev\DragDrop\Functions\get_default_max_file_size;
+namespace ZIORWebDev\DragDrop\Integrations;
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -166,7 +163,12 @@ class Uploader {
 	public function __construct() {
 		// Set the temporary file path.
 		$this->temp_file_path = wp_upload_dir()['basedir'] . '/easy-dragdrop-uploader-temp';
+	}
 
+	/**
+	 * Initialize the uploader by hooking into WordPress actions and filters.
+	 */
+	public function init() {
 		add_action( 'wp_ajax_easy_dragdrop_upload', array( $this, 'handle_easy_dragdrop_upload' ), 10 );
 		add_action( 'wp_ajax_nopriv_easy_dragdrop_upload', array( $this, 'handle_easy_dragdrop_upload' ), 10 );
 		add_action( 'wp_ajax_easy_dragdrop_remove', array( $this, 'handle_easy_dragdrop_remove' ), 10 );
@@ -250,7 +252,7 @@ class Uploader {
 
 		// Retrieve and validate file properties.
 		$secret_key = sanitize_text_field( wp_unslash( $_POST['secret_key'] ?? '' ) );
-		$args       = decrypt_data( $secret_key );
+		$args       = Helpers::decrypt_data( $secret_key );
 
 		$valid_types = explode( ',', $args['types'] ?? '' );
 
@@ -260,7 +262,7 @@ class Uploader {
 			return;
 		}
 
-		$file_max_size = absint( $args['size'] ) * 1024 * 1024 ?? get_default_max_file_size();
+		$file_max_size = absint( $args['size'] ) * 1024 * 1024 ?? Helpers::get_default_max_file_size();
 
 		if ( ! $this->is_valid_file_size( $uploaded_file, $file_max_size ) ) {
 			wp_send_json_error(

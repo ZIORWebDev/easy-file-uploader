@@ -9,10 +9,8 @@
  * @since      1.0.0
  */
 
-namespace ZIORWebDev\DragDrop\Classes;
-
-use function ZIORWebDev\DragDrop\Functions\get_options;
-use function ZIORWebDev\DragDrop\Functions\get_default_max_file_size;
+namespace ZIORWebDev\DragDrop;
+use ZIORWebDev\DragDrop\Helpers;
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -28,13 +26,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since      1.0.0
  */
 class Settings {
-
-	/**
-	 * Contains instance or null
-	 *
-	 * @var object|null
-	 */
-	private static $instance = null;
 
 	/**
 	 * Loads a template file using WordPress's load_template function.
@@ -128,7 +119,7 @@ class Settings {
 	 * @since 1.0.0
 	 * @return void
 	 */
-	public function __construct() {
+	public function init() {
 		add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'easy_dragdrop_settings_after', array( $this, 'render_marketing_card' ) );
@@ -188,20 +179,6 @@ class Settings {
 	}
 
 	/**
-	 * Returns instance of Settings.
-	 *
-	 * @since 1.0.0
-	 * @return object
-	 */
-	public static function get_instance() {
-		if ( null === self::$instance ) {
-			self::$instance = new self();
-		}
-
-		return self::$instance;
-	}
-
-	/**
 	 * Registers settings, sections, and fields for the plugin.
 	 *
 	 * This function registers settings with WordPress, adds a settings section,
@@ -211,7 +188,7 @@ class Settings {
 	 * @return void
 	 */
 	public function register_settings(): void {
-		$options = get_options();
+		$options = Helpers::get_options();
 
 		foreach ( $options as $option ) {
 			register_setting(

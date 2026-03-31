@@ -9,11 +9,9 @@
  * @since      1.0.0
  */
 
-namespace ZIORWebDev\DragDrop\Classes\Integrations;
+namespace ZIORWebDev\DragDrop\Integrations;
 
-use ZIORWebDev\DragDrop\Classes\Integrations\Fields\ElementorUploader;
-use ZIORWebDev\DragDrop\Classes\Integrations\Fields\CF7Uploader;
-use ElementorPro\Modules\Forms\Classes\Fields;
+use ZIORWebDev\DragDrop\Integrations\Fields;
 use ElementorPro\Modules\Forms\Registrars\Form_Fields_Registrar;
 
 // Exit if accessed directly.
@@ -29,21 +27,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Register {
 
 	/**
-	 * Singleton instance of the class.
-	 *
-	 * @var Register|null
-	 */
-	private static $instance = null;
-
-	/**
-	 * Constructor for the class.
+	 * Initialize class.
 	 *
 	 * Hooks into Elementor Pro to register custom form fields.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
-	public function __construct() {
+	public function init() {
 		/**
 		 * Register Elementor form pro dragdrop uploader field
 		 */
@@ -52,25 +43,11 @@ class Register {
 		/**
 		 * Register CF7 form pro dragdrop uploader field
 		 */
-		$cf7_uploader = CF7Uploader::get_instance();
+		$cf7_uploader = Fields\CF7Uploader::get_instance();
 		add_action( 'wpcf7_init', array( $cf7_uploader, 'register' ), 10 );
 
 		// Let other developers to register their own uploader.
 		do_action( 'zior_dragdrop_register_uploader' );
-	}
-
-	/**
-	 * Retrieves the singleton instance of the class.
-	 *
-	 * @since 1.0.0
-	 * @return Register The singleton instance.
-	 */
-	public static function get_instance(): Register {
-		if ( null === self::$instance ) {
-			self::$instance = new self();
-		}
-
-		return self::$instance;
 	}
 
 	/**
@@ -81,6 +58,6 @@ class Register {
 	 * @return void
 	 */
 	public function register_elementor_form_fields( Form_Fields_Registrar $form ): void {
-		$form->register( new ElementorUploader() );
+		$form->register( new Fields\ElementorUploader() );
 	}
 }

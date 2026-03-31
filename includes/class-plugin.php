@@ -9,11 +9,7 @@
  * @since 1.0.0
  */
 
-namespace ZIORWebDev\DragDrop\Classes;
-
-use ZIORWebDev\DragDrop\Classes\Loader;
-use function ZIORWebDev\DragDrop\Functions\get_plugin_version;
-use function ZIORWebDev\DragDrop\Functions\get_default_max_file_size;
+namespace ZIORWebDev\DragDrop;
 
 /**
  * The core plugin class for ZIOR Drag Drop.
@@ -35,18 +31,19 @@ class Plugin {
 	protected $plugin_file;
 
 	/**
-	 * Singleton instance of the Plugin class.
-	 *
-	 * @var Plugin
-	 */
-	protected static $instance;
-
-	/**
 	 * Current version of the plugin.
 	 *
 	 * @var string
 	 */
 	protected $version = '';
+
+	/**
+	 * Class constructor.
+	 */
+	public function __construct( string $plugin_file ) {
+		$this->plugin_file = $plugin_file;
+		$this->version     = Helpers::get_plugin_version( $this->plugin_file );
+	}
 
 	/**
 	 * Initialize the plugin.
@@ -56,12 +53,13 @@ class Plugin {
 	 * @since 1.0.0
 	 * @return void
 	 */
-	private function init(): void {
+	public function init(): void {
 		$this->setup_constants();
-		$this->include_classes();
 
-		$loader = Loader::get_instance();
-		$loader->load();
+		( new Settings() )->init();
+		( new Assets() )->init();
+		( new Integrations\Uploader() )->init();
+		( new Integrations\Register() )->init();
 	}
 
 	/**
@@ -78,21 +76,8 @@ class Plugin {
 		update_option( 'easy_dragdrop_file_types_allowed', 'jpg,jpeg,png,gif,bmp,webp,tiff,tif' );
 
 		// Set the max file size. This is based on the server's upload_max_filesize.
-		$default_max_file_size = get_default_max_file_size();
+		$default_max_file_size = Helpers::get_default_max_file_size();
 		update_option( 'easy_dragdrop_max_file_size', $default_max_file_size );
-	}
-
-	/**
-	 * Include required plugin files.
-	 *
-	 * Loads configuration, core functions, loader class, and the updater helper.
-	 *
-	 * @since 1.0.0
-	 * @return void
-	 */
-	private function include_classes(): void {
-		require_once ZIORWEBDEV_DRAGDROP_PLUGIN_DIR . 'vendor/autoload.php';
-		require_once ZIORWEBDEV_DRAGDROP_PLUGIN_DIR . 'includes/classes/class-loader.php';
 	}
 
 	/**
@@ -105,38 +90,18 @@ class Plugin {
 		if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_VERSION' ) ) {
 			define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_VERSION', $this->version );
 		}
-	}
 
-	/**
-	 * Retrieves the singleton instance of the Plugin class.
-	 *
-	 * Instantiates the class if it hasn't been already, and initializes it using the given plugin file path.
-	 *
-	 * @since 1.0.0
-	 * @param string $plugin_file Absolute path to the main plugin file.
-	 * @return static Instance of the Plugin class.
-	 */
-	public static function get_instance( string $plugin_file ): Plugin {
-		if ( is_null( self::$instance ) ) {
-			self::$instance = new self( $plugin_file );
-			self::$instance->init();
+		if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR' ) ) {
+			define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 		}
 
-		return self::$instance;
-	}
+		if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL' ) ) {
+			define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+		}
 
-	/**
-	 * Class constructor.
-	 *
-	 * Sets the plugin file path and version, and hooks into the 'init' action
-	 * to load the plugin's text domain for translations.
-	 *
-	 * @since 1.0.0
-	 * @param string $plugin_file Absolute path to the main plugin file.
-	 */
-	public function __construct( string $plugin_file ) {
-		$this->plugin_file = $plugin_file;
-		$this->version     = get_plugin_version( $plugin_file );
+		if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE' ) ) {
+			define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE', __FILE__ );
+		}
 	}
 
 	/**

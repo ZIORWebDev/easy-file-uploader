@@ -9,15 +9,13 @@
  * @since      1.0.0
  */
 
-namespace ZIORWebDev\DragDrop\Classes\Integrations\Fields;
+namespace ZIORWebDev\DragDrop\Integrations\Fields;
 
 use ElementorPro\Modules\Forms\Fields\Field_Base;
 use Elementor\Controls_Manager;
 use ElementorPro\Plugin;
 use ElementorPro\Modules\Forms\Classes;
-use function ZIORWebDev\DragDrop\Functions\convert_extentions_to_mime_types;
-use function ZIORWebDev\DragDrop\Functions\get_allowed_html;
-use function ZIORWebDev\DragDrop\Functions\get_default_max_file_size;
+use ZIORWebDev\DragDrop\Helpers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
@@ -121,7 +119,7 @@ class ElementorUploader extends Field_Base {
 			return;
 		}
 
-		$default_max_file_size = get_default_max_file_size();
+		$default_max_file_size = Helpers::get_default_max_file_size();
 		$custom_controls       = array(
 			'easy_dragdrop_max_file_size'         => array(
 				'name'         => 'easy_dragdrop_max_file_size',
@@ -210,7 +208,7 @@ class ElementorUploader extends Field_Base {
 			);
 		}
 
-		$file_types   = convert_extentions_to_mime_types( $item['easy_dragdrop_file_types'] );
+		$file_types   = Helpers::convert_extentions_to_mime_types( $item['easy_dragdrop_file_types'] );
 		$default_size = wp_max_upload_size() / 1024 / 1024;
 		$attributes   = array(
 			'data-filesize'  => esc_attr( $item['easy_dragdrop_max_file_size'] ?? $default_size ),
@@ -226,7 +224,7 @@ class ElementorUploader extends Field_Base {
 		// Allow developers to modify the input attributes.
 		do_action( 'easy_dragdrop_before_render_input', $input_attributes );
 
-		$allowed_html = get_allowed_html();
+		$allowed_html = Helpers::get_allowed_html();
 
 		echo wp_kses( '<input ' . $input_attributes . '>', $allowed_html );
 	}

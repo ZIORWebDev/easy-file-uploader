@@ -8,9 +8,9 @@
  * @package ZIORWebDev\DragDrop
  */
 
-namespace ZIORWebDev\DragDrop\Classes;
+namespace ZIORWebDev\DragDrop;
 
-use function ZIORWebDev\DragDrop\Functions\get_uploader_configurations;
+use ZIORWebDev\DragDrop\Helpers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -22,18 +22,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Assets {
 
 	/**
-	 * Singleton instance.
-	 *
-	 * @var Assets|null
-	 */
-	private static ?Assets $instance = null;
-
-	/**
 	 * Constructor.
 	 *
 	 * Hooks asset loading into WordPress and Elementor.
 	 */
-	private function __construct() {
+	public function init() {
 		/**
 		 * Load scripts and styles in the frontend.
 		 */
@@ -78,7 +71,7 @@ class Assets {
 	 * @return void
 	 */
 	public function enqueue_scripts(): void {
-		$configurations = get_uploader_configurations();
+		$configurations = Helpers::get_uploader_configurations();
 
 		// Vendor assets.
 		wp_enqueue_style(
@@ -124,18 +117,5 @@ class Assets {
 			'window.EasyDragDropUploader = ' . wp_json_encode( $configurations ) . ';',
 			'before'
 		);
-	}
-
-	/**
-	 * Get singleton instance.
-	 *
-	 * @return Assets
-	 */
-	public static function get_instance(): Assets {
-		if ( null === self::$instance ) {
-			self::$instance = new self();
-		}
-
-		return self::$instance;
 	}
 }

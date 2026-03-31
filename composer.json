@@ -9,5 +9,10 @@
     ],
     "require": {
         "ascteam/mimey": "^3.0"
+    },
+    "autoload": {
+        "classmap": [
+            "includes/"
+        ]
     }
 }

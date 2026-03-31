@@ -9,15 +9,14 @@
  * @since      1.0.0
  */
 
-namespace ZIORWebDev\DragDrop\Classes\Integrations\Fields;
+namespace ZIORWebDev\DragDrop\Integrations\Fields;
 
 use WPCF7_FormTag;
 use WPCF7_Submission;
 use WPCF7_TagGenerator;
 use WPCF7_TagGeneratorGenerator;
 use WPCF7_MailTag;
-
-use function ZIORWebDev\DragDrop\Functions\convert_extentions_to_mime_types;
+use ZIORWebDev\DragDrop\Helpers;
 
 /**
  * CF7 Uploader Class
@@ -151,7 +150,7 @@ class CF7Uploader {
 
 		$raw_file_types = $this->get_easy_dragdrop_value( $tag, 'filetypes' );
 		$raw_file_types = array_map( 'trim', explode( '|', $raw_file_types ) );
-		$file_types     = convert_extentions_to_mime_types( implode( ',', $raw_file_types ) );
+		$file_types     = Helpers::convert_extentions_to_mime_types( implode( ',', $raw_file_types ) );
 		$default_size   = wp_max_upload_size() / 1024 / 1024;
 		$file_size      = $tag->get_limit_option();
 		$multiple       = $this->get_easy_dragdrop_value( $tag, 'multifiles' );

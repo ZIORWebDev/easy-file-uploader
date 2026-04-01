@@ -28,7 +28,7 @@ jobs:
             vendor
             node_modules
             dist
-          key: ${{ runner.os }}-build-${{ hashFiles('composer.lock', 'yarn.lock') }}
+          key: ${{ runner.os }}-build-${{ hashFiles('composer.lock', 'package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-build-
 
@@ -39,8 +39,7 @@ jobs:
           composer install --no-dev --optimize-autoloader
 
       - name: Install Node Dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Build
-        run: |
-          yarn build
+        run: npm run build

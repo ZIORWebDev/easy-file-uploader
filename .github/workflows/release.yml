@@ -24,8 +24,14 @@ jobs:
       - name: Read Package Info
         id: vars
         run: |
-          echo "PACKAGE_NAME=$(jq -r .name package.json)" >> "$GITHUB_OUTPUT"
-          echo "PACKAGE_VERSION=$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
+          # Extract plugin version from PHP file
+          VERSION=$(grep -i "Version:" easy-file-uploader.php | head -n 1 | sed -E 's/.*Version:[[:space:]]*//')
+
+          # Define package name manually (since no longer using package.json)
+          PACKAGE_NAME="easy-file-uploader"
+
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "PACKAGE_VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Check for ZIP file
         run: |

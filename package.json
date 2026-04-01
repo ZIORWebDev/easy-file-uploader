@@ -1,6 +1,5 @@
 {
   "name": "easy-file-uploader",
-  "version": "1.1.8",
   "repository": "https://github.com/ZIORWebDev/easy-file-uploader.git",
   "license": "MIT",
   "main": "dist/index.js",

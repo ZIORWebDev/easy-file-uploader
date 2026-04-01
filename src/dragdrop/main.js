@@ -33,7 +33,7 @@ function getDragDropConfiguration(configuration) {
             process: {
                 method: "POST",
                 headers: {
-                    'X-WP-Nonce': wpApiSettings.nonce
+                    'X-WP-Nonce': configuration.nonce
                 },
                 ondata: (formData) => {
                     formData.append("size", configuration.maxFileSize);
@@ -60,7 +60,7 @@ function getDragDropConfiguration(configuration) {
             },
             revert: {
                 headers: {
-                    'X-WP-Nonce': wpApiSettings.nonce
+                    'X-WP-Nonce': configuration.nonce
                 },
                 url: `${configuration.rest}/delete`
             }

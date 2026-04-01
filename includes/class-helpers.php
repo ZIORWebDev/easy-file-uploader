@@ -140,7 +140,7 @@ class Helpers {
 	 */
 	public static function get_plugin_options(): array {
 		$plugin_options = array();
-		$options        = get_options();
+		$options        = self::get_options();
 
 		foreach ( $options as $option ) {
 			$plugin_options[ $option['option_name'] ] = get_option( $option['option_name'] ) ?? '';
@@ -165,10 +165,9 @@ class Helpers {
 
 		$uploader_configurations = array(
 			'acceptedFileTypes' => $accepted_file_types,
-			'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
 			'labelIdle'         => $plugin_options['easy_dragdrop_button_label'] ?? 'Browse Image',
 			'labelMaxFileSize'  => apply_filters( 'easy_dragdrop_label_max_file_size', '' ),
-			'nonce'             => wp_create_nonce( 'easy_dragdrop_uploader_nonce' ),
+			'rest'              => rest_url( Routes::get_namespace() ),
 		);
 
 		$file_type_error = $plugin_options['easy_dragdrop_file_type_error'] ?? '';
@@ -184,22 +183,6 @@ class Helpers {
 		}
 
 		return apply_filters( 'easy_dragdrop_uploader_configurations', $uploader_configurations, $plugin_options );
-	}
-
-	/**
-	 * Decrypts the given data.
-	 *
-	 * This function takes a string of encrypted data.
-	 * It then converts the decoded string into an associative array using json_decode.
-	 *
-	 * @since 1.0.0
-	 * @param string $data The encrypted data to be decrypted.
-	 * @return array|bool The decrypted data as an associative array or false if the data is invalid.
-	 */
-	public static function decrypt_data( string $data ): bool|array {
-		$data = base64_decode( $data ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-
-		return json_decode( $data, true );
 	}
 
 	/**

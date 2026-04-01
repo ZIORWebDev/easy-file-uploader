@@ -58,8 +58,9 @@ class Plugin {
 
 		( new Settings() )->init();
 		( new Assets() )->init();
-		( new Integrations\Uploader() )->init();
 		( new Integrations\Register() )->init();
+		( new Routes() )->load();
+		( new Hooks\Uploader() )->init();
 	}
 
 	/**
@@ -92,15 +93,15 @@ class Plugin {
 		}
 
 		if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR' ) ) {
-			define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+			define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR', plugin_dir_path( $this->plugin_file ) );
 		}
 
 		if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL' ) ) {
-			define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+			define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL', plugin_dir_url( $this->plugin_file ) );
 		}
 
 		if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE' ) ) {
-			define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE', __FILE__ );
+			define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE', $this->plugin_file );
 		}
 	}
 
@@ -123,5 +124,8 @@ class Plugin {
 	 * @since 1.0.0
 	 * @return void
 	 */
-	public function deactivate_plugin(): void {}
+	public function deactivate_plugin(): void {
+		// Let developers hook on plugin activate.
+		do_action( 'easy_dragdrop_plugin_deactivate' );
+	}
 }

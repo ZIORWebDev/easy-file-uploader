@@ -11,6 +11,8 @@
 
 namespace ZIORWebDev\DragDrop\Integrations;
 
+use ZIORWebDev\DragDrop\Helpers;
+
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,13 +25,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since      1.0.0
  */
 class Uploader {
-	/**
-	 * Singleton instance of the class.
-	 *
-	 * @var Uploader|null
-	 */
-	private static ?Uploader $instance = null;
-
 	/**
 	 * Path to the temporary file directory.
 	 *
@@ -64,7 +59,7 @@ class Uploader {
 	 * @param array $files The uploaded files from the Elementor form.
 	 * @return array|bool The uploaded file array or false if no file is uploaded.
 	 */
-	private function get_uploaded_file( array $files ): array|bool {
+	private function get_uploaded_files( array $files ): array|bool {
 		if ( empty( $files ) || ! is_array( $files ) ) {
 			return false;
 		}
@@ -166,34 +161,6 @@ class Uploader {
 	}
 
 	/**
-	 * Initialize the uploader by hooking into WordPress actions and filters.
-	 */
-	public function init() {
-		add_action( 'wp_ajax_easy_dragdrop_upload', array( $this, 'handle_easy_dragdrop_upload' ), 10 );
-		add_action( 'wp_ajax_nopriv_easy_dragdrop_upload', array( $this, 'handle_easy_dragdrop_upload' ), 10 );
-		add_action( 'wp_ajax_easy_dragdrop_remove', array( $this, 'handle_easy_dragdrop_remove' ), 10 );
-		add_action( 'wp_ajax_nopriv_easy_dragdrop_remove', array( $this, 'handle_easy_dragdrop_remove' ), 10 );
-		add_filter( 'easy_dragdrop_process_field', array( $this, 'process_field' ), 10, 2 );
-
-		add_filter( 'easy_dragdrop_validate_file_type', array( $this, 'validate_file_type' ), 10, 3 );
-		add_filter( 'easy_dragdrop_validate_file_size', array( $this, 'validate_file_size' ), 10, 3 );
-	}
-
-	/**
-	 * Retrieves the singleton instance of the class.
-	 *
-	 * @since 1.0.0
-	 * @return Uploader The single instance of the class.
-	 */
-	public static function get_instance(): Uploader {
-		if ( is_null( self::$instance ) ) {
-			self::$instance = new self();
-		}
-
-		return self::$instance;
-	}
-
-	/**
 	 * Handles the removal of an uploaded file.
 	 *
 	 * This function verifies the nonce for security, retrieves the file URL from the request,
@@ -202,27 +169,28 @@ class Uploader {
 	 * @since 1.0.0
 	 * @return void Outputs JSON response indicating success or failure.
 	 */
-	public function handle_easy_dragdrop_remove(): void {
-		check_ajax_referer( 'easy_dragdrop_uploader_nonce', 'security' );
-
+	public function remove_files( \WP_REST_Request|null $request ): array {
 		// Retrieve the file id from the request body.
-		$file_id = sanitize_text_field( file_get_contents( 'php://input' ) );
+		$file_id = sanitize_text_field( $request->get_body() );
 
 		if ( ! $file_id ) {
-			wp_send_json_error(
-				array( 'message' => __( 'Missing file ID.', 'easy-file-uploader' ) )
+			return array(
+				'success' => false,
+				'error'   => __( 'Missing file ID.', 'easy-file-uploader' )
 			);
 		}
 
 		$temp_file_path = $this->temp_file_path . '/' . dirname( $file_id );
 
 		if ( $this->delete_files( $temp_file_path ) ) {
-			wp_send_json_success(
-				array( 'message' => __( 'Files deleted successfully.', 'easy-file-uploader' ) )
+			return array(
+				'success' => true,
+				'message' => __( 'Files deleted successfully.', 'easy-file-uploader' )
 			);
 		} else {
-			wp_send_json_error(
-				array( 'message' => __( 'Failed to delete files.', 'easy-file-uploader' ) )
+			return array(
+				'success' => false,
+				'error'   => __( 'Failed to delete files.', 'easy-file-uploader' )
 			);
 		}
 	}
@@ -236,43 +204,34 @@ class Uploader {
 	 * @since 1.0.0
 	 * @return void Outputs JSON response indicating success or failure.
 	 */
-	public function handle_easy_dragdrop_upload(): void {
-		check_ajax_referer( 'easy_dragdrop_uploader_nonce', 'security' );
+	public function upload_files( \WP_REST_Request|null $request ): array {
+		$files = $request->get_file_params();
 
-		if ( ! isset( $_FILES['form_fields'] ) ) {
-			wp_send_json_error( array( 'error' => __( 'No valid file uploaded.', 'easy-file-uploader' ) ) );
-
-			return;
+		if ( empty( $files['form_fields'] ?? '' ) ) {
+			return array(
+				'error' => __( 'No valid file uploaded.', 'easy-file-uploader' )
+			);
 		}
 
-		// For Elementor Pro forms, get the uploaded files from form_fields_array.
-		$files = map_deep( $_FILES['form_fields'], 'sanitize_text_field' );
-
-		$uploaded_file = $this->get_uploaded_file( $files );
+		$uploaded_files = $this->get_uploaded_files( $files['form_fields'] );
 
 		// Retrieve and validate file properties.
-		$secret_key = sanitize_text_field( wp_unslash( $_POST['secret_key'] ?? '' ) );
-		$args       = Helpers::decrypt_data( $secret_key );
+		$valid_types = explode( ',', sanitize_text_field( wp_unslash( $_POST['types'] ) ) ?? '' );
 
-		$valid_types = explode( ',', $args['types'] ?? '' );
-
-		if ( ! $this->is_valid_file_type( $uploaded_file, $valid_types ) ) {
-			wp_send_json_error( array( 'error' => get_option( 'easy_dragdrop_file_type_error', '' ) ), 415 );
-
-			return;
+		if ( ! $this->is_valid_file_type( $uploaded_files, $valid_types ) ) {
+			return array(
+				'success' => false,
+				'error'   => get_option( 'easy_dragdrop_file_type_error', '' ) ?: 'Invalid file type.',
+			);
 		}
 
-		$file_max_size = absint( $args['size'] ) * 1024 * 1024 ?? Helpers::get_default_max_file_size();
+		$file_max_size = absint( sanitize_text_field( wp_unslash( $_POST['size'] ) ) ) * 1024 * 1024 ?? Helpers::get_default_max_file_size();
 
-		if ( ! $this->is_valid_file_size( $uploaded_file, $file_max_size ) ) {
-			wp_send_json_error(
-				array(
-					'error' => get_option( 'easy_dragdrop_file_size_error', '' ),
-				),
-				413
+		if ( ! $this->is_valid_file_size( $uploaded_files, $file_max_size ) ) {
+			return array(
+				'success' => false,
+				'error'   => get_option( 'easy_dragdrop_file_size_error', '' ) ?: 'File size exceeds the maximum allowed size.',
 			);
-
-			return;
 		}
 
 		$unique_id      = wp_generate_uuid4();
@@ -280,111 +239,24 @@ class Uploader {
 
 		wp_mkdir_p( $temp_file_path );
 
-		if ( $this->move_file( $uploaded_file['tmp_name'], $temp_file_path . '/' . $uploaded_file['name'] ) ) {
+		if ( $this->move_file( $uploaded_files['tmp_name'], $temp_file_path . '/' . $uploaded_files['name'] ) ) {
 			// Let other developers to do something with the uploaded file.
-			do_action( 'easy_dragdrop_upload_success', $uploaded_file, $temp_file_path );
+			do_action( 'easy_dragdrop_upload_success', $uploaded_files, $temp_file_path );
 
 			// Send the success response.
-			wp_send_json_success(
-				array(
-					'file_id' => $unique_id . '/' . $uploaded_file['name'],
-				)
+			return array(
+				'success' => true,
+				'file_id' => $unique_id . '/' . $uploaded_files['name'],
 			);
 		} else {
 			// Let other developers to do something with the error.
-			do_action( 'easy_dragdrop_upload_failure', $uploaded_file, $temp_file_path );
+			do_action( 'easy_dragdrop_upload_failure', $uploaded_files, $temp_file_path );
 
 			// Send the error response.
-			wp_send_json_error(
-				array(
-					'error' => 'Failed to move uploaded file.',
-				)
+			return array(
+				'success' => false,
+				'error'   => 'Failed to move uploaded file.',
 			);
 		}
-	}
-
-	/**
-	 * Processes the DragDrop field by moving files from the temporary directory to the upload directory.
-	 *
-	 * @since 1.0.0
-	 * @param array $field The field data.
-	 * @param mixed $record The form record instance.
-	 * @return array The processed files.
-	 */
-	public function process_field( array $field, mixed $record = null ): array {
-		$upload_dir  = wp_upload_dir();
-		$upload_path = apply_filters( 'easy_dragdrop_upload_path', $upload_dir['path'] );
-		$value_urls  = array();
-		$value_paths = array();
-		$files       = is_array( $field['raw_value'] ) ? $field['raw_value'] : array( $field['raw_value'] );
-
-		if ( empty( $files ) ) {
-			return array();
-		}
-
-		foreach ( $files as $unique_id ) {
-			if ( empty( $unique_id ) ) {
-				continue;
-			}
-
-			$source      = $this->temp_file_path . '/' . $unique_id;
-			$destination = $upload_path . '/' . basename( $unique_id );
-
-			// Move file to upload directory.
-			$file_path = $this->move_file( $source, $destination );
-
-			if ( $file_path ) {
-				$value_paths[] = $file_path;
-				$value_urls[]  = str_replace( $upload_dir['basedir'], $upload_dir['baseurl'], $file_path );
-			}
-
-			// Delete temporary folder containing the file.
-			$this->delete_files( dirname( $source ) );
-		}
-
-		$value_paths = implode( ', ', $value_paths );
-
-		// Allow other developers to do something with the processed files.
-		do_action( 'easy_dragdrop_process_files', $field, $value_paths, $value_urls, $record );
-
-		return $value_urls;
-	}
-
-	/**
-	 * Validate if the uploaded file size is within the allowed limit.
-	 *
-	 * @since 1.0.0
-	 * @param bool  $valid    Whether the file is already considered valid.
-	 * @param array $file     Uploaded file data from $_FILES.
-	 * @param int   $max_size Maximum allowed file size in bytes.
-	 * @return bool True if the file size is valid, false otherwise.
-	 */
-	public function validate_file_size( bool $valid, array $file, int $max_size ): bool {
-		if ( $valid ) {
-			return true;
-		}
-
-		return ( $file['size'] <= $max_size );
-	}
-
-	/**
-	 * Validate if the uploaded file type is allowed.
-	 *
-	 * @since 1.0.0
-	 * @param bool  $valid         Whether the file is already considered valid.
-	 * @param array $file          Uploaded file data from $_FILES.
-	 * @param array $allowed_types List of allowed MIME types (e.g., ['image/png', 'image/jpeg']).
-	 * @return bool True if the file type is valid, false otherwise.
-	 */
-	public function validate_file_type( bool $valid, array $file, array $allowed_types ): bool {
-		if ( $valid ) {
-			return true;
-		}
-
-		// Get the MIME type using wp_check_filetype.
-		$file_type = wp_check_filetype( $file['name'] );
-
-		// Validate file type against allowed MIME types.
-		return ( ! empty( $file_type['type'] ) && in_array( $file_type['type'], $allowed_types, true ) );
 	}
 }

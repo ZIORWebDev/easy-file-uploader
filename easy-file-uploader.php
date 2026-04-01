@@ -5,7 +5,7 @@
  * Description:  Enhances Elementor Pro Forms and Contact Form 7 with a drag and drop uploader for seamless file uploads.
  * Author:       ZIORWeb.Dev
  * Author URI:   https://ziorweb.dev
- * Version:      1.1.8
+ * Version:      1.1.9
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * License:      GPL-2.0-or-later
@@ -47,26 +47,3 @@ $plugin_instance->init();
 // Activation and deactivation hooks.
 register_activation_hook( __FILE__, array( $plugin_instance, 'activate_plugin' ) );
 register_deactivation_hook( __FILE__, array( $plugin_instance, 'deactivate_plugin' ) );
-
-
-
-
-// if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR' ) ) {
-// 	define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-// }
-
-// if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL' ) ) {
-// 	define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-// }
-
-// if ( ! defined( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE' ) ) {
-// 	define( 'ZIORWEBDEV_DRAGDROP_PLUGIN_FILE', __FILE__ );
-// }
-
-// require_once ZIORWEBDEV_DRAGDROP_PLUGIN_DIR . 'includes/functions.php';
-// require_once ZIORWEBDEV_DRAGDROP_PLUGIN_DIR . 'includes/classes/class-plugin.php';
-
-// $plugin_instance = Plugin::get_instance( __FILE__ );
-
-// register_activation_hook( __FILE__, array( $plugin_instance, 'activate_plugin' ) );
-// register_deactivation_hook( __FILE__, array( $plugin_instance, 'deactivate_plugin' ) );

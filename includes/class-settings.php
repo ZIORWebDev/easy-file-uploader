@@ -239,7 +239,7 @@ class Settings {
 	 * @return void
 	 */
 	public function render_marketing_card(): void {
-		load_template( ZIORWEBDEV_DRAGDROP_PLUGIN_DIR . 'views/marketing.php', false );
+		$this->load_template( 'marketing', array() );
 	}
 
 	/**

@@ -160,6 +160,6 @@ function getInputConfiguration(fileInput) {
     allowMultiple: fileInput.attr('multiple') !== undefined,
     labelIdle: data.label ?? '',
     maxFileSize: data.filesize ? `${data.filesize}MB` : null,
-    maxFiles: data.maxfiles ?? null,
+    maxFiles: data.maxfiles ? parseInt(data.maxfiles) : null
   };
 }

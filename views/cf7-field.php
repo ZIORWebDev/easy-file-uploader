@@ -1,10 +1,9 @@
 <?php
-use function ZIORWebDev\DragDrop\Functions\get_allowed_html;
-use function ZIORWebDev\DragDrop\Functions\get_default_max_file_size;
+use ZIORWebDev\DragDrop\Helpers;
 
 $field_types   = $args['field_types'] ?? array();
 $tgg           = $args['tgg'] ?? null;
-$max_file_size = get_default_max_file_size();
+$max_file_size = Helpers::get_default_max_file_size();
 ?>
 <header class="description-box">
 	<h3>

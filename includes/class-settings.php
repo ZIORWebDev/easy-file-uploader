@@ -122,7 +122,7 @@ class Settings {
 	public function init() {
 		add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
-		add_action( 'easy_dragdrop_settings_after', array( $this, 'render_marketing_card' ) );
+		add_action( 'easy_dragdrop_settings_after', array( $this, 'render_marketing_card' ), 10 );
 
 		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'add_settings_link' ) );
 	}
@@ -239,6 +239,10 @@ class Settings {
 	 * @return void
 	 */
 	public function render_marketing_card(): void {
+		if ( class_exists( 'ZIORWebDev\\DragDrop\\Pro\\Plugin', true ) ) {
+			return;
+		}
+
 		$this->load_template( 'marketing', array() );
 	}
 
@@ -271,7 +275,7 @@ class Settings {
 	public function section_callback(): void {
 		printf(
 			'<p>%s</p>',
-			esc_html__( 'Configure Easy DragDrop File Uploader settings.', 'easy-file-uploader' )
+			esc_html__( 'Configure the DragDrop uploader settings.', 'easy-file-uploader' )
 		);
 	}
 

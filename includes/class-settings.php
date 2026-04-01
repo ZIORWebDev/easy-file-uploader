@@ -271,7 +271,7 @@ class Settings {
 	public function section_callback(): void {
 		printf(
 			'<p>%s</p>',
-			esc_html__( 'Configure the DragDrop uploader settings.', 'easy-file-uploader' )
+			esc_html__( 'Configure Easy DragDrop File Uploader settings.', 'easy-file-uploader' )
 		);
 	}
 

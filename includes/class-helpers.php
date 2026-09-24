@@ -168,6 +168,7 @@ class Helpers {
 			'labelIdle'         => $plugin_options['easy_dragdrop_button_label'] ?? 'Browse Image',
 			'labelMaxFileSize'  => apply_filters( 'easy_dragdrop_label_max_file_size', '' ),
 			'rest'              => rest_url( Routes::get_namespace() ),
+			'nonce'             => wp_create_nonce( 'wp_rest' )
 		);
 
 		$file_type_error = $plugin_options['easy_dragdrop_file_type_error'] ?? '';

@@ -233,6 +233,102 @@ class Helpers {
 	}
 
 	/**
+	 * Validates that a file path is within an approved directory boundary.
+	 *
+	 * This method performs strict security checks to ensure:
+	 * - Path does not contain directory traversal sequences (../ or ..\)
+	 * - Path is not an absolute path
+	 * - Resolved real path is within the approved base directory
+	 * - File or directory actually exists
+	 *
+	 * @since 1.1.10
+	 * @param string $file_path The file path to validate.
+	 * @param string $base_dir  The approved base directory.
+	 * @return bool True if path is valid and within boundaries, false otherwise.
+	 */
+	public static function validate_path_is_within_directory( string $file_path, string $base_dir ): bool {
+		// Reject empty paths
+		if ( empty( $file_path ) || empty( $base_dir ) ) {
+			return false;
+		}
+
+		// Normalize the base directory path
+		$base_dir = wp_normalize_path( $base_dir );
+
+		// Ensure base directory ends with a separator for comparison
+		if ( ! str_ends_with( $base_dir, '/' ) ) {
+			$base_dir .= '/';
+		}
+
+		// Check for path traversal attempts in the input
+		if ( strpos( $file_path, '..' ) !== false ) {
+			return false;
+		}
+
+		// Reject absolute paths and URLs
+		$file_path_normalized = wp_normalize_path( $file_path );
+		if ( preg_match( '~^(?:[a-z]:)?[/\\\\]~i', $file_path_normalized ) ) {
+			return false;
+		}
+
+		// Build the full path using the base directory
+		$full_path = $base_dir . ltrim( $file_path_normalized, '/' );
+
+		// Resolve the real path
+		$real_path = realpath( $full_path );
+
+		// If realpath fails, path doesn't exist or is invalid
+		if ( ! $real_path ) {
+			return false;
+		}
+
+		// Normalize the resolved path
+		$real_path = wp_normalize_path( $real_path );
+
+		// Ensure it's within the base directory
+		if ( ! str_starts_with( $real_path, $base_dir ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Sanitizes and validates a file identifier for secure path construction.
+	 *
+	 * This method ensures the identifier is safe to use in filesystem operations
+	 * by rejecting traversal attempts and invalid characters.
+	 *
+	 * @since 1.1.10
+	 * @param string $file_id The file identifier from user input.
+	 * @return string|false The sanitized file ID if valid, false otherwise.
+	 */
+	public static function sanitize_file_identifier( string $file_id ): string|false {
+		// Reject empty identifiers
+		if ( empty( $file_id ) ) {
+			return false;
+		}
+
+		// Reject identifiers containing path traversal sequences
+		if ( strpos( $file_id, '..' ) !== false ) {
+			return false;
+		}
+
+		// Reject identifiers starting with / or containing absolute paths
+		if ( str_starts_with( $file_id, '/' ) || str_starts_with( $file_id, '\\' ) ) {
+			return false;
+		}
+
+		// Allow only safe characters (alphanumeric, hyphens, underscores, slashes, dots, and forward slashes)
+		// This prevents directory traversal and shell injection
+		if ( ! preg_match( '~^[a-zA-Z0-9/_\.\-]+$~', $file_id ) ) {
+			return false;
+		}
+
+		return sanitize_text_field( wp_unslash( $file_id ) );
+	}
+
+	/**
 	 * Returns the settings options for the plugin.
 	 *
 	 * This function defines the settings options for the plugin.

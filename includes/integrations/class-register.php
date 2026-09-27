@@ -46,8 +46,9 @@ class Register {
 		$cf7_uploader = Fields\CF7Uploader::get_instance();
 		add_action( 'wpcf7_init', array( $cf7_uploader, 'register' ), 10 );
 
-		// Let other developers to register their own uploader.
-		do_action( 'zior_dragdrop_register_uploader' );
+		// Let other developers register their own uploader.
+		do_action( 'easy_dragdrop_register_uploader' );
+		do_action_deprecated( 'zior_dragdrop_register_uploader', array(), '1.2.0', 'easy_dragdrop_register_uploader' );
 	}
 
 	/**

@@ -260,8 +260,26 @@ class Uploader {
 
 		$uploaded_files = $this->get_uploaded_files( $files['form_fields'] );
 
-		// Retrieve and validate file properties.
-		$valid_types = explode( ',', sanitize_text_field( wp_unslash( $_POST['types'] ) ) ?? '' );
+		// Retrieve and validate the allowed MIME types or file extensions.
+		$raw_types = $request->get_param( 'types' );
+		if ( ! is_string( $raw_types ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid file types.', 'easy-file-uploader' ),
+			);
+		}
+
+		$raw_types   = sanitize_text_field( $raw_types );
+		$valid_types = array_filter( array_map( 'trim', explode( ',', $raw_types ) ) );
+		foreach ( $valid_types as $valid_type ) {
+			if ( ! preg_match( '/^[a-z0-9][a-z0-9.+_-]*(?:\/(?:[a-z0-9][a-z0-9.+_-]*|\*))?$/i', $valid_type ) ) {
+				return array(
+					'success' => false,
+					'error'   => __( 'Invalid file types.', 'easy-file-uploader' ),
+				);
+			}
+		}
+		$valid_types = array_values( $valid_types );
 
 		if ( ! $this->is_valid_file_type( $uploaded_files, $valid_types ) ) {
 			return array(
@@ -270,7 +288,35 @@ class Uploader {
 			);
 		}
 
-		$file_max_size = absint( sanitize_text_field( wp_unslash( $_POST['size'] ) ) ) * 1024 * 1024 ?? Helpers::get_default_max_file_size();
+		$raw_size = $request->get_param( 'size' );
+		if ( null === $raw_size || '' === $raw_size ) {
+			$raw_size = Helpers::get_default_max_file_size();
+		}
+		error_log( '$raw_size: ' . $raw_size );
+		if ( ! is_int( $raw_size ) && ! is_string( $raw_size ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid file size limit.', 'easy-file-uploader' ),
+			);
+		}
+
+		$file_size_mb = filter_var(
+			preg_replace( '/[^0-9]/', '', (string) $raw_size ),
+			FILTER_VALIDATE_INT,
+			array(
+				'options' => array( 'min_range' => 1 ),
+			)
+		);
+		error_log( '$file_size_mb: ' . $file_size_mb );
+		if ( false === $file_size_mb ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid file size limit.', 'easy-file-uploader' ),
+			);
+		}
+
+		$file_size_mb = min( $file_size_mb, Helpers::get_default_max_file_size() );
+		$file_max_size = $file_size_mb * 1024 * 1024;
 
 		if ( ! $this->is_valid_file_size( $uploaded_files, $file_max_size ) ) {
 			return array(
@@ -282,11 +328,30 @@ class Uploader {
 		// Generate a unique ID for this upload session
 		$unique_id = wp_generate_uuid4();
 
-		// Ensure the temp directory path doesn't allow traversal
-		$temp_file_path = apply_filters( 'easy_dragdrop_temp_file_path', $this->temp_file_path . '/' . $unique_id );
+		// Ensure the filter-selected path remains within the temporary upload directory.
+		$temp_file_path = apply_filters( 'easy_dragdrop_temp_file_path', trailingslashit( $this->temp_file_path ) . $unique_id );
+		if ( ! is_string( $temp_file_path ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid temporary directory path.', 'easy-file-uploader' ),
+			);
+		}
 
-		// SECURITY: Validate that the temp path is within the allowed directory
-		if ( ! Helpers::validate_path_is_within_directory( $unique_id, $this->temp_file_path ) ) {
+		$temp_base_path   = trailingslashit( wp_normalize_path( $this->temp_file_path ) );
+		$temp_file_path   = wp_normalize_path( $temp_file_path );
+		$path_prefix_match = '\\' === DIRECTORY_SEPARATOR
+			? 0 === strncasecmp( $temp_file_path, $temp_base_path, strlen( $temp_base_path ) )
+			: str_starts_with( $temp_file_path, $temp_base_path );
+
+		if ( ! $path_prefix_match ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid temporary directory path.', 'easy-file-uploader' ),
+			);
+		}
+
+		$relative_temp_path = substr( $temp_file_path, strlen( $temp_base_path ) );
+		if ( ! Helpers::validate_path_is_within_directory( $relative_temp_path, $this->temp_file_path, true ) ) {
 			return array(
 				'success' => false,
 				'error'   => __( 'Invalid temporary directory path.', 'easy-file-uploader' ),
@@ -298,6 +363,13 @@ class Uploader {
 			return array(
 				'success' => false,
 				'error'   => __( 'Failed to create temporary directory.', 'easy-file-uploader' ),
+			);
+		}
+
+		if ( ! Helpers::validate_path_is_within_directory( $relative_temp_path, $this->temp_file_path ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid temporary directory path.', 'easy-file-uploader' ),
 			);
 		}
 

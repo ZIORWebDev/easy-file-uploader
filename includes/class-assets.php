@@ -94,7 +94,8 @@ class Assets {
 		 *
 		 * @param array $configurations Uploader configurations.
 		 */
-		do_action( 'enqueue_easy_dragdrop_scripts', $configurations );
+		do_action( 'easy_dragdrop_enqueue_scripts', $configurations );
+		do_action_deprecated( 'enqueue_easy_dragdrop_scripts', array( $configurations ), '1.2.0', 'easy_dragdrop_enqueue_scripts' );
 
 		// Main uploader assets.
 		wp_enqueue_style(

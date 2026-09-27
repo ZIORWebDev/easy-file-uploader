@@ -239,25 +239,19 @@ class Helpers {
 	 * - Path does not contain directory traversal sequences (../ or ..\)
 	 * - Path is not an absolute path
 	 * - Resolved real path is within the approved base directory
-	 * - File or directory actually exists
+	 * - Nonexistent descendants are accepted only when explicitly allowed and
+	 *   their nearest existing ancestor is within the approved base directory
 	 *
 	 * @since 1.1.10
-	 * @param string $file_path The file path to validate.
-	 * @param string $base_dir  The approved base directory.
+	 * @param string $file_path         The relative file path to validate.
+	 * @param string $base_dir          The approved base directory.
+	 * @param bool   $allow_nonexistent Whether to allow a destination that does not exist yet.
 	 * @return bool True if path is valid and within boundaries, false otherwise.
 	 */
-	public static function validate_path_is_within_directory( string $file_path, string $base_dir ): bool {
+	public static function validate_path_is_within_directory( string $file_path, string $base_dir, bool $allow_nonexistent = false ): bool {
 		// Reject empty paths
-		if ( empty( $file_path ) || empty( $base_dir ) ) {
+		if ( '' === $file_path || '' === $base_dir ) {
 			return false;
-		}
-
-		// Normalize the base directory path
-		$base_dir = wp_normalize_path( $base_dir );
-
-		// Ensure base directory ends with a separator for comparison
-		if ( ! str_ends_with( $base_dir, '/' ) ) {
-			$base_dir .= '/';
 		}
 
 		// Check for path traversal attempts in the input
@@ -265,32 +259,86 @@ class Helpers {
 			return false;
 		}
 
-		// Reject absolute paths and URLs
 		$file_path_normalized = wp_normalize_path( $file_path );
-		if ( preg_match( '~^(?:[a-z]:)?[/\\\\]~i', $file_path_normalized ) ) {
+		if ( preg_match( '~^(?:[a-z]:|[a-z][a-z0-9+.-]*:|[/\\\\])~i', $file_path_normalized ) ) {
 			return false;
 		}
 
-		// Build the full path using the base directory
-		$full_path = $base_dir . ltrim( $file_path_normalized, '/' );
+		$base_dir_normalized = wp_normalize_path( $base_dir );
+		$real_base_path      = realpath( $base_dir_normalized );
+
+		if ( false === $real_base_path ) {
+			$base_path_parts = array();
+			$base_ancestor   = $base_dir_normalized;
+
+			while ( false === ( $real_base_path = realpath( $base_ancestor ) ) ) {
+				$parent_path = dirname( $base_ancestor );
+				if ( $parent_path === $base_ancestor ) {
+					return false;
+				}
+
+				$base_path_parts[] = basename( $base_ancestor );
+				$base_ancestor     = $parent_path;
+			}
+
+			if ( ! is_dir( $real_base_path ) ) {
+				return false;
+			}
+
+			foreach ( array_reverse( $base_path_parts ) as $base_path_part ) {
+				$real_base_path = trailingslashit( wp_normalize_path( $real_base_path ) ) . $base_path_part;
+			}
+		} elseif ( ! is_dir( $real_base_path ) ) {
+			return false;
+		}
+
+		$real_base_path = wp_normalize_path( $real_base_path );
+		$full_path      = trailingslashit( $real_base_path ) . $file_path_normalized;
 
 		// Resolve the real path
 		$real_path = realpath( $full_path );
 
-		// If realpath fails, path doesn't exist or is invalid
 		if ( ! $real_path ) {
-			return false;
+			if ( ! $allow_nonexistent ) {
+				return false;
+			}
+
+			$missing_path_parts = array();
+			$existing_ancestor  = $full_path;
+
+			while ( false === ( $real_path = realpath( $existing_ancestor ) ) ) {
+				$parent_path = dirname( $existing_ancestor );
+				if ( $parent_path === $existing_ancestor ) {
+					return false;
+				}
+
+				$missing_path_parts[] = basename( $existing_ancestor );
+				$existing_ancestor    = $parent_path;
+			}
+
+			if ( ! is_dir( $real_path ) ) {
+				return false;
+			}
+
+			foreach ( array_reverse( $missing_path_parts ) as $missing_path_part ) {
+				$real_path = trailingslashit( wp_normalize_path( $real_path ) ) . $missing_path_part;
+			}
 		}
 
-		// Normalize the resolved path
-		$real_path = wp_normalize_path( $real_path );
+		$real_path      = wp_normalize_path( $real_path );
+		$real_base_path = untrailingslashit( $real_base_path );
+		$base_prefix    = trailingslashit( $real_base_path );
+
+		if ( $real_path === $real_base_path ) {
+			return true;
+		}
 
 		// Ensure it's within the base directory
-		if ( ! str_starts_with( $real_path, $base_dir ) ) {
-			return false;
+		if ( '\\' === DIRECTORY_SEPARATOR || preg_match( '~^[a-z]:/~i', $real_base_path ) ) {
+			return 0 === strncasecmp( $real_path, $base_prefix, strlen( $base_prefix ) );
 		}
 
-		return true;
+		return str_starts_with( $real_path, $base_prefix );
 	}
 
 	/**

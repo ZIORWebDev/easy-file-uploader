@@ -1,21 +1,21 @@
 <?php
 use ZIORWebDev\DragDrop\Helpers;
 
-$field_types   = $args['field_types'] ?? array();
-$tgg           = $args['tgg'] ?? null;
-$max_file_size = Helpers::get_default_max_file_size();
+$easy_dragdrop_field_types   = $args['field_types'] ?? array();
+$easy_dragdrop_tag_generator = $args['tgg'] ?? null;
+$easy_dragdrop_max_file_size = Helpers::get_default_max_file_size();
 ?>
 <header class="description-box">
 	<h3>
 	<?php
-		echo esc_html( $field_types['easy_dragdrop_upload']['heading'] );
+		echo esc_html( $easy_dragdrop_field_types['easy_dragdrop_upload']['heading'] );
 	?>
 	</h3>
 
 	<p>
 	<?php
-		$description = wp_kses(
-			$field_types['easy_dragdrop_upload']['description'],
+		$easy_dragdrop_description = wp_kses(
+			$easy_dragdrop_field_types['easy_dragdrop_upload']['description'],
 			array(
 				'a'      => array( 'href' => true ),
 				'strong' => array(),
@@ -23,29 +23,30 @@ $max_file_size = Helpers::get_default_max_file_size();
 			array( 'http', 'https' )
 		);
 
-		echo $description;
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The description is restricted to approved markup by wp_kses().
+		echo $easy_dragdrop_description;
 		?>
 	</p>
 </header>
 
 <div class="control-box">
 	<?php
-		$tgg->print(
+		$easy_dragdrop_tag_generator->print(
 			'field_type',
 			array(
 				'with_required'  => true,
 				'select_options' => array(
-					'easy_dragdrop_upload' => $field_types['easy_dragdrop_upload']['display_name'],
+					'easy_dragdrop_upload' => $easy_dragdrop_field_types['easy_dragdrop_upload']['display_name'],
 				),
 			)
 		);
 
-		$tgg->print( 'field_name' );
-		$tgg->print( 'class_attr' );
+		$easy_dragdrop_tag_generator->print( 'field_name' );
+		$easy_dragdrop_tag_generator->print( 'class_attr' );
 		?>
 
 	<fieldset>
-		<legend id="<?php echo esc_attr( $tgg->ref( 'buttonlabel-option-legend' ) ); ?>">
+		<legend id="<?php echo esc_attr( $easy_dragdrop_tag_generator->ref( 'buttonlabel-option-legend' ) ); ?>">
 		<?php
 			echo esc_html( __( 'Button Label', 'easy-file-uploader' ) );
 		?>
@@ -53,39 +54,28 @@ $max_file_size = Helpers::get_default_max_file_size();
 		<label>
 		<?php
 		printf(
-			'<span %1$s>%2$s</span><br />',
-			wpcf7_format_atts(
-				array(
-					'id' => $tgg->ref( 'buttonlabel-option-description' ),
-				)
-			),
+			'<span id="%1$s">%2$s</span><br />',
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'buttonlabel-option-description' ) ) ),
 			esc_html( __( "Use underscores to separate the words since CF7 doesn't support spaces on field attribute value.", 'easy-file-uploader' ) )
 		);
 
-		$button_label = get_option( 'easy_dragdrop_button_label', 'Browse Files' );
+		$easy_dragdrop_button_label = get_option( 'easy_dragdrop_button_label', 'Browse Files' );
 
 		// Replace spaces with underscores. In the field option, we use underscores to separate the words since CF7 doesn't support spaces on field attribute value.
-		$button_label = str_replace( ' ', '_', $button_label );
+		$easy_dragdrop_button_label = str_replace( ' ', '_', $easy_dragdrop_button_label );
 
 		printf(
-			'<input %s />',
-			wpcf7_format_atts(
-				array(
-					'type'             => 'text',
-					'value'            => $button_label,
-					'aria-labelledby'  => $tgg->ref( 'buttonlabel-option-legend' ),
-					'aria-describedby' => $tgg->ref( 'buttonlabel-option-description' ),
-					'data-tag-part'    => 'option',
-					'data-tag-option'  => 'buttonlabel:',
-				)
-			)
+			'<input type="text" value="%1$s" aria-labelledby="%2$s" aria-describedby="%3$s" data-tag-part="option" data-tag-option="buttonlabel:" />',
+			esc_attr( trim( $easy_dragdrop_button_label ) ),
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'buttonlabel-option-legend' ) ) ),
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'buttonlabel-option-description' ) ) )
 		);
 		?>
 		</label>
 	</fieldset>
 
 	<fieldset>
-		<legend id="<?php echo esc_attr( $tgg->ref( 'filetypes-option-legend' ) ); ?>">
+		<legend id="<?php echo esc_attr( $easy_dragdrop_tag_generator->ref( 'filetypes-option-legend' ) ); ?>">
 		<?php
 			echo esc_html( __( 'Acceptable file types', 'easy-file-uploader' ) );
 		?>
@@ -93,37 +83,26 @@ $max_file_size = Helpers::get_default_max_file_size();
 		<label>
 		<?php
 		printf(
-			'<span %1$s>%2$s</span><br />',
-			wpcf7_format_atts(
-				array(
-					'id' => $tgg->ref( 'filetypes-option-description' ),
-				)
-			),
+			'<span id="%1$s">%2$s</span><br />',
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'filetypes-option-description' ) ) ),
 			esc_html( __( 'Pipe-separated file types list. Please can use file extensions.', 'easy-file-uploader' ) )
 		);
 
-		$raw_file_types = get_option( 'easy_dragdrop_file_types_allowed', '' );
-		$raw_file_types = array_map( 'trim', explode( ',', $raw_file_types ) );
+		$easy_dragdrop_raw_file_types = get_option( 'easy_dragdrop_file_types_allowed', '' );
+		$easy_dragdrop_raw_file_types = array_map( 'trim', explode( ',', $easy_dragdrop_raw_file_types ) );
 
 		printf(
-			'<input %s />',
-			wpcf7_format_atts(
-				array(
-					'type'             => 'text',
-					'value'            => implode( '|', $raw_file_types ),
-					'aria-labelledby'  => $tgg->ref( 'filetypes-option-legend' ),
-					'aria-describedby' => $tgg->ref( 'filetypes-option-description' ),
-					'data-tag-part'    => 'option',
-					'data-tag-option'  => 'filetypes:',
-				)
-			)
+			'<input type="text" value="%1$s" aria-labelledby="%2$s" aria-describedby="%3$s" data-tag-part="option" data-tag-option="filetypes:" />',
+			esc_attr( trim( implode( '|', $easy_dragdrop_raw_file_types ) ) ),
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'filetypes-option-legend' ) ) ),
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'filetypes-option-description' ) ) )
 		);
 		?>
 		</label>
 	</fieldset>
 
 	<fieldset>
-		<legend id="<?php echo esc_attr( $tgg->ref( 'limit-option-legend' ) ); ?>">
+		<legend id="<?php echo esc_attr( $easy_dragdrop_tag_generator->ref( 'limit-option-legend' ) ); ?>">
 		<?php
 			echo esc_html( __( 'File size limit (MB)', 'easy-file-uploader' ) );
 		?>
@@ -131,34 +110,23 @@ $max_file_size = Helpers::get_default_max_file_size();
 		<label>
 		<?php
 		printf(
-			'<span %1$s>%2$s</span><br />',
-			wpcf7_format_atts(
-				array(
-					'id' => $tgg->ref( 'limit-option-description' ),
-				)
-			),
+			'<span id="%1$s">%2$s</span><br />',
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'limit-option-description' ) ) ),
 			esc_html( __( 'File maximum size in MB.', 'easy-file-uploader' ) )
 		);
 
 		printf(
-			'<input %s />',
-			wpcf7_format_atts(
-				array(
-					'type'             => 'number',
-					'value'            => $max_file_size,
-					'aria-labelledby'  => $tgg->ref( 'limit-option-legend' ),
-					'aria-describedby' => $tgg->ref( 'limit-option-description' ),
-					'data-tag-part'    => 'option',
-					'data-tag-option'  => 'limit:',
-				)
-			)
+			'<input type="number" value="%1$s" aria-labelledby="%2$s" aria-describedby="%3$s" data-tag-part="option" data-tag-option="limit:" />',
+			esc_attr( trim( (string) $easy_dragdrop_max_file_size ) ),
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'limit-option-legend' ) ) ),
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'limit-option-description' ) ) )
 		);
 		?>
 		</label>
 	</fieldset>
 
 	<fieldset>
-		<legend id="<?php echo esc_attr( $tgg->ref( 'multifiles-option-legend' ) ); ?>">
+		<legend id="<?php echo esc_attr( $easy_dragdrop_tag_generator->ref( 'multifiles-option-legend' ) ); ?>">
 		<?php
 			echo esc_html( __( 'Multiple Files?', 'easy-file-uploader' ) );
 		?>
@@ -166,34 +134,22 @@ $max_file_size = Helpers::get_default_max_file_size();
 		<label>
 		<?php
 		printf(
-			'<span %1$s>%2$s</span><br />',
-			wpcf7_format_atts(
-				array(
-					'id' => $tgg->ref( 'multifiles-option-description' ),
-				)
-			),
+			'<span id="%1$s">%2$s</span><br />',
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'multifiles-option-description' ) ) ),
 			esc_html( __( 'Check if you want to allow multiple files to be uploaded.', 'easy-file-uploader' ) )
 		);
 
 		printf(
-			'<input %s />',
-			wpcf7_format_atts(
-				array(
-					'type'             => 'checkbox',
-					'value'            => 1,
-					'aria-labelledby'  => $tgg->ref( 'multifiles-option-legend' ),
-					'aria-describedby' => $tgg->ref( 'multifiles-option-description' ),
-					'data-tag-part'    => 'option',
-					'data-tag-option'  => 'multifiles:',
-				)
-			)
+			'<input type="checkbox" value="1" aria-labelledby="%1$s" aria-describedby="%2$s" data-tag-part="option" data-tag-option="multifiles:" />',
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'multifiles-option-legend' ) ) ),
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'multifiles-option-description' ) ) )
 		);
 		?>
 		</label>
 	</fieldset>
 
 	<fieldset>
-		<legend id="<?php echo esc_attr( $tgg->ref( 'maxfiles-option-legend' ) ); ?>">
+		<legend id="<?php echo esc_attr( $easy_dragdrop_tag_generator->ref( 'maxfiles-option-legend' ) ); ?>">
 		<?php
 			echo esc_html( __( 'Maximum Files', 'easy-file-uploader' ) );
 		?>
@@ -201,27 +157,16 @@ $max_file_size = Helpers::get_default_max_file_size();
 		<label>
 		<?php
 		printf(
-			'<span %1$s>%2$s</span><br />',
-			wpcf7_format_atts(
-				array(
-					'id' => $tgg->ref( 'maxfiles-option-description' ),
-				)
-			),
+			'<span id="%1$s">%2$s</span><br />',
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'maxfiles-option-description' ) ) ),
 			esc_html( __( 'Maximum number of files that can be uploaded.', 'easy-file-uploader' ) )
 		);
 
 		printf(
-			'<input %s />',
-			wpcf7_format_atts(
-				array(
-					'type'             => 'number',
-					'value'            => get_option( 'easy_dragdrop_max_files', '' ),
-					'aria-labelledby'  => $tgg->ref( 'maxfiles-option-legend' ),
-					'aria-describedby' => $tgg->ref( 'maxfiles-option-description' ),
-					'data-tag-part'    => 'option',
-					'data-tag-option'  => 'maxfiles:',
-				)
-			)
+			'<input type="number" value="%1$s" aria-labelledby="%2$s" aria-describedby="%3$s" data-tag-part="option" data-tag-option="maxfiles:" />',
+			esc_attr( trim( (string) get_option( 'easy_dragdrop_max_files', '' ) ) ),
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'maxfiles-option-legend' ) ) ),
+			esc_attr( trim( $easy_dragdrop_tag_generator->ref( 'maxfiles-option-description' ) ) )
 		);
 		?>
 		</label>
@@ -230,7 +175,7 @@ $max_file_size = Helpers::get_default_max_file_size();
 
 <footer class="insert-box">
 	<?php
-		$tgg->print( 'insert_box_content' );
-		$tgg->print( 'mail_tag_tip' );
+		$easy_dragdrop_tag_generator->print( 'insert_box_content' );
+		$easy_dragdrop_tag_generator->print( 'mail_tag_tip' );
 	?>
 </footer>

@@ -3,6 +3,9 @@ name: Merge Free Version into PRO Repository
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   sync:
     runs-on: ubuntu-latest

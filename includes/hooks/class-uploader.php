@@ -29,6 +29,9 @@ class Uploader {
 	/**
 	 * Deletes all files inside a folder.
 	 *
+	 * Security: This method validates that the folder path is within the plugin's
+	 * designated temporary upload directory before performing recursive deletion.
+	 *
 	 * @param string $folder Folder path.
 	 * @return bool True on success, false on failure.
 	 */
@@ -38,6 +41,22 @@ class Uploader {
 		if ( ! isset( $wp_filesystem ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			WP_Filesystem();
+		}
+
+		// SECURITY: Ensure the folder exists before attempting deletion
+		if ( ! file_exists( $folder ) ) {
+			return false;
+		}
+
+		// Get the temp directory path for validation
+		$upload_dir = wp_upload_dir();
+		$temp_path  = $upload_dir['basedir'] . '/easy-dragdrop-uploader-temp';
+
+		// SECURITY: Validate that the folder is within the temp directory
+		$relative_path = str_replace( $temp_path . '/', '', $folder );
+		if ( ! Helpers::validate_path_is_within_directory( $relative_path, $temp_path ) ) {
+			// Prevent deletion outside temp directory
+			return false;
 		}
 
 		return $wp_filesystem->rmdir( $folder, true );
@@ -124,6 +143,9 @@ class Uploader {
 	/**
 	 * Processes the DragDrop field by moving files from the temporary directory to the upload directory.
 	 *
+	 * Security: This method validates all user-controlled paths before performing filesystem operations.
+	 * It prevents directory traversal attacks by using realpath() validation and boundary checks.
+	 *
 	 * @since 1.0.0
 	 * @param array $field The field data.
 	 * @param mixed $record The form record instance.
@@ -146,8 +168,32 @@ class Uploader {
 				continue;
 			}
 
-			$source      = $temp_path . '/' . $unique_id;
-			$destination = $upload_path . '/' . basename( $unique_id );
+			// Sanitize the file identifier to prevent path traversal
+			$sanitized_id = Helpers::sanitize_file_identifier( $unique_id );
+			if ( ! $sanitized_id ) {
+				// Invalid file ID format - skip this file
+				continue;
+			}
+
+			$source      = $temp_path . '/' . $sanitized_id;
+			$destination = $upload_path . '/' . basename( $sanitized_id );
+
+			// SECURITY: Validate that source path is within the temp directory
+			if ( ! Helpers::validate_path_is_within_directory( $sanitized_id, $temp_path ) ) {
+				// Path traversal attempt or path outside approved directory - skip file
+				continue;
+			}
+
+			// SECURITY: Verify the source file actually exists in the expected temp directory
+			if ( ! file_exists( $source ) ) {
+				// File doesn't exist - skip this file
+				continue;
+			}
+
+			// SECURITY: Ensure destination directory exists
+			if ( ! file_exists( $upload_path ) ) {
+				wp_mkdir_p( $upload_path );
+			}
 
 			// Move file to upload directory.
 			$file_path = $this->move_file( $source, $destination );
@@ -158,7 +204,11 @@ class Uploader {
 			}
 
 			// Delete temporary folder containing the file.
-			$this->delete_files( dirname( $source ) );
+			// SECURITY: Only delete if the source directory is within the temp directory
+			$source_dir = dirname( $source );
+			if ( Helpers::validate_path_is_within_directory( dirname( $sanitized_id ), $temp_path ) ) {
+				$this->delete_files( $source_dir );
+			}
 		}
 
 		$value_paths = implode( ', ', $value_paths );

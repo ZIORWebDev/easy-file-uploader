@@ -35,6 +35,10 @@ class Uploader {
 	/**
 	 * Deletes all files inside a folder.
 	 *
+	 * Security: This method only deletes files within the plugin's designated
+	 * temporary upload directory to prevent accidental or malicious deletion
+	 * of files outside the intended scope.
+	 *
 	 * @param string $folder Folder path.
 	 * @return bool True on success, false on failure.
 	 */
@@ -44,6 +48,17 @@ class Uploader {
 		if ( ! isset( $wp_filesystem ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			WP_Filesystem();
+		}
+
+		// SECURITY: Ensure the folder exists before attempting deletion
+		if ( ! file_exists( $folder ) ) {
+			return false;
+		}
+
+		// SECURITY: Validate that the folder is within the temp directory
+		if ( ! Helpers::validate_path_is_within_directory( str_replace( $this->temp_file_path . '/', '', $folder ), $this->temp_file_path ) ) {
+			// Prevent deletion outside temp directory
+			return false;
 		}
 
 		return $wp_filesystem->rmdir( $folder, true );
@@ -163,11 +178,11 @@ class Uploader {
 	/**
 	 * Handles the removal of an uploaded file.
 	 *
-	 * This function verifies the nonce for security, retrieves the file URL from the request,
-	 * converts it to the file path, and attempts to delete the file from the server.
+	 * Security: This method performs strict path validation to prevent directory traversal attacks.
+	 * Only files within the plugin's temporary directory can be deleted.
 	 *
 	 * @since 1.0.0
-	 * @return void Outputs JSON response indicating success or failure.
+	 * @return array Array containing success status and message.
 	 */
 	public function remove_files( \WP_REST_Request|null $request ): array {
 		// Retrieve the file id from the request body.
@@ -180,8 +195,35 @@ class Uploader {
 			);
 		}
 
-		$temp_file_path = $this->temp_file_path . '/' . dirname( $file_id );
+		// SECURITY: Sanitize the file identifier to prevent path traversal
+		$sanitized_id = Helpers::sanitize_file_identifier( $file_id );
+		if ( ! $sanitized_id ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid file ID format.', 'easy-file-uploader' )
+			);
+		}
 
+		// Build the path to the directory containing the file
+		$temp_file_path = $this->temp_file_path . '/' . dirname( $sanitized_id );
+
+		// SECURITY: Validate that the directory path is within the temp directory
+		if ( ! Helpers::validate_path_is_within_directory( dirname( $sanitized_id ), $this->temp_file_path ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid file path.', 'easy-file-uploader' )
+			);
+		}
+
+		// SECURITY: Verify the directory actually exists before attempting deletion
+		if ( ! file_exists( $temp_file_path ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'File not found.', 'easy-file-uploader' )
+			);
+		}
+
+		// Delete the directory and its contents
 		if ( $this->delete_files( $temp_file_path ) ) {
 			return array(
 				'success' => true,
@@ -201,8 +243,11 @@ class Uploader {
 	 * This function verifies security checks, validates the uploaded file,
 	 * processes the file upload, and saves it to a custom directory.
 	 *
+	 * Security: All file paths are validated to ensure they remain within the
+	 * plugin's designated temporary upload directory.
+	 *
 	 * @since 1.0.0
-	 * @return void Outputs JSON response indicating success or failure.
+	 * @return array Array containing upload result with success status and file information.
 	 */
 	public function upload_files( \WP_REST_Request|null $request ): array {
 		$files = $request->get_file_params();
@@ -215,8 +260,26 @@ class Uploader {
 
 		$uploaded_files = $this->get_uploaded_files( $files['form_fields'] );
 
-		// Retrieve and validate file properties.
-		$valid_types = explode( ',', sanitize_text_field( wp_unslash( $_POST['types'] ) ) ?? '' );
+		// Retrieve and validate the allowed MIME types or file extensions.
+		$raw_types = $request->get_param( 'types' );
+		if ( ! is_string( $raw_types ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid file types.', 'easy-file-uploader' ),
+			);
+		}
+
+		$raw_types   = sanitize_text_field( $raw_types );
+		$valid_types = array_filter( array_map( 'trim', explode( ',', $raw_types ) ) );
+		foreach ( $valid_types as $valid_type ) {
+			if ( ! preg_match( '/^[a-z0-9][a-z0-9.+_-]*(?:\/(?:[a-z0-9][a-z0-9.+_-]*|\*))?$/i', $valid_type ) ) {
+				return array(
+					'success' => false,
+					'error'   => __( 'Invalid file types.', 'easy-file-uploader' ),
+				);
+			}
+		}
+		$valid_types = array_values( $valid_types );
 
 		if ( ! $this->is_valid_file_type( $uploaded_files, $valid_types ) ) {
 			return array(
@@ -225,7 +288,35 @@ class Uploader {
 			);
 		}
 
-		$file_max_size = absint( sanitize_text_field( wp_unslash( $_POST['size'] ) ) ) * 1024 * 1024 ?? Helpers::get_default_max_file_size();
+		$raw_size = $request->get_param( 'size' );
+		if ( null === $raw_size || '' === $raw_size ) {
+			$raw_size = Helpers::get_default_max_file_size();
+		}
+		error_log( '$raw_size: ' . $raw_size );
+		if ( ! is_int( $raw_size ) && ! is_string( $raw_size ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid file size limit.', 'easy-file-uploader' ),
+			);
+		}
+
+		$file_size_mb = filter_var(
+			preg_replace( '/[^0-9]/', '', (string) $raw_size ),
+			FILTER_VALIDATE_INT,
+			array(
+				'options' => array( 'min_range' => 1 ),
+			)
+		);
+		error_log( '$file_size_mb: ' . $file_size_mb );
+		if ( false === $file_size_mb ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid file size limit.', 'easy-file-uploader' ),
+			);
+		}
+
+		$file_size_mb = min( $file_size_mb, Helpers::get_default_max_file_size() );
+		$file_max_size = $file_size_mb * 1024 * 1024;
 
 		if ( ! $this->is_valid_file_size( $uploaded_files, $file_max_size ) ) {
 			return array(
@@ -234,19 +325,73 @@ class Uploader {
 			);
 		}
 
-		$unique_id      = wp_generate_uuid4();
-		$temp_file_path = apply_filters( 'easy_dragdrop_temp_file_path', $this->temp_file_path . '/' . $unique_id );
+		// Generate a unique ID for this upload session
+		$unique_id = wp_generate_uuid4();
 
-		wp_mkdir_p( $temp_file_path );
+		// Ensure the filter-selected path remains within the temporary upload directory.
+		$temp_file_path = apply_filters( 'easy_dragdrop_temp_file_path', trailingslashit( $this->temp_file_path ) . $unique_id );
+		if ( ! is_string( $temp_file_path ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid temporary directory path.', 'easy-file-uploader' ),
+			);
+		}
 
-		if ( $this->move_file( $uploaded_files['tmp_name'], $temp_file_path . '/' . $uploaded_files['name'] ) ) {
+		$temp_base_path   = trailingslashit( wp_normalize_path( $this->temp_file_path ) );
+		$temp_file_path   = wp_normalize_path( $temp_file_path );
+		$path_prefix_match = '\\' === DIRECTORY_SEPARATOR
+			? 0 === strncasecmp( $temp_file_path, $temp_base_path, strlen( $temp_base_path ) )
+			: str_starts_with( $temp_file_path, $temp_base_path );
+
+		if ( ! $path_prefix_match ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid temporary directory path.', 'easy-file-uploader' ),
+			);
+		}
+
+		$relative_temp_path = substr( $temp_file_path, strlen( $temp_base_path ) );
+		if ( ! Helpers::validate_path_is_within_directory( $relative_temp_path, $this->temp_file_path, true ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid temporary directory path.', 'easy-file-uploader' ),
+			);
+		}
+
+		// Create the temporary directory for this upload
+		if ( ! wp_mkdir_p( $temp_file_path ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Failed to create temporary directory.', 'easy-file-uploader' ),
+			);
+		}
+
+		if ( ! Helpers::validate_path_is_within_directory( $relative_temp_path, $this->temp_file_path ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid temporary directory path.', 'easy-file-uploader' ),
+			);
+		}
+
+		// Sanitize the uploaded filename to prevent directory traversal
+		$safe_filename = basename( $uploaded_files['name'] );
+		$safe_filename = sanitize_file_name( $safe_filename );
+
+		if ( empty( $safe_filename ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Invalid file name.', 'easy-file-uploader' ),
+			);
+		}
+
+		if ( $this->move_file( $uploaded_files['tmp_name'], $temp_file_path . '/' . $safe_filename ) ) {
 			// Let other developers to do something with the uploaded file.
 			do_action( 'easy_dragdrop_upload_success', $uploaded_files, $temp_file_path );
 
 			// Send the success response.
 			return array(
 				'success' => true,
-				'file_id' => $unique_id . '/' . $uploaded_files['name'],
+				'file_id' => $unique_id . '/' . $safe_filename,
 			);
 		} else {
 			// Let other developers to do something with the error.

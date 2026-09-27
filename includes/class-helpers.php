@@ -233,6 +233,150 @@ class Helpers {
 	}
 
 	/**
+	 * Validates that a file path is within an approved directory boundary.
+	 *
+	 * This method performs strict security checks to ensure:
+	 * - Path does not contain directory traversal sequences (../ or ..\)
+	 * - Path is not an absolute path
+	 * - Resolved real path is within the approved base directory
+	 * - Nonexistent descendants are accepted only when explicitly allowed and
+	 *   their nearest existing ancestor is within the approved base directory
+	 *
+	 * @since 1.1.10
+	 * @param string $file_path         The relative file path to validate.
+	 * @param string $base_dir          The approved base directory.
+	 * @param bool   $allow_nonexistent Whether to allow a destination that does not exist yet.
+	 * @return bool True if path is valid and within boundaries, false otherwise.
+	 */
+	public static function validate_path_is_within_directory( string $file_path, string $base_dir, bool $allow_nonexistent = false ): bool {
+		// Reject empty paths
+		if ( '' === $file_path || '' === $base_dir ) {
+			return false;
+		}
+
+		// Check for path traversal attempts in the input
+		if ( strpos( $file_path, '..' ) !== false ) {
+			return false;
+		}
+
+		$file_path_normalized = wp_normalize_path( $file_path );
+		if ( preg_match( '~^(?:[a-z]:|[a-z][a-z0-9+.-]*:|[/\\\\])~i', $file_path_normalized ) ) {
+			return false;
+		}
+
+		$base_dir_normalized = wp_normalize_path( $base_dir );
+		$real_base_path      = realpath( $base_dir_normalized );
+
+		if ( false === $real_base_path ) {
+			$base_path_parts = array();
+			$base_ancestor   = $base_dir_normalized;
+
+			while ( false === ( $real_base_path = realpath( $base_ancestor ) ) ) {
+				$parent_path = dirname( $base_ancestor );
+				if ( $parent_path === $base_ancestor ) {
+					return false;
+				}
+
+				$base_path_parts[] = basename( $base_ancestor );
+				$base_ancestor     = $parent_path;
+			}
+
+			if ( ! is_dir( $real_base_path ) ) {
+				return false;
+			}
+
+			foreach ( array_reverse( $base_path_parts ) as $base_path_part ) {
+				$real_base_path = trailingslashit( wp_normalize_path( $real_base_path ) ) . $base_path_part;
+			}
+		} elseif ( ! is_dir( $real_base_path ) ) {
+			return false;
+		}
+
+		$real_base_path = wp_normalize_path( $real_base_path );
+		$full_path      = trailingslashit( $real_base_path ) . $file_path_normalized;
+
+		// Resolve the real path
+		$real_path = realpath( $full_path );
+
+		if ( ! $real_path ) {
+			if ( ! $allow_nonexistent ) {
+				return false;
+			}
+
+			$missing_path_parts = array();
+			$existing_ancestor  = $full_path;
+
+			while ( false === ( $real_path = realpath( $existing_ancestor ) ) ) {
+				$parent_path = dirname( $existing_ancestor );
+				if ( $parent_path === $existing_ancestor ) {
+					return false;
+				}
+
+				$missing_path_parts[] = basename( $existing_ancestor );
+				$existing_ancestor    = $parent_path;
+			}
+
+			if ( ! is_dir( $real_path ) ) {
+				return false;
+			}
+
+			foreach ( array_reverse( $missing_path_parts ) as $missing_path_part ) {
+				$real_path = trailingslashit( wp_normalize_path( $real_path ) ) . $missing_path_part;
+			}
+		}
+
+		$real_path      = wp_normalize_path( $real_path );
+		$real_base_path = untrailingslashit( $real_base_path );
+		$base_prefix    = trailingslashit( $real_base_path );
+
+		if ( $real_path === $real_base_path ) {
+			return true;
+		}
+
+		// Ensure it's within the base directory
+		if ( '\\' === DIRECTORY_SEPARATOR || preg_match( '~^[a-z]:/~i', $real_base_path ) ) {
+			return 0 === strncasecmp( $real_path, $base_prefix, strlen( $base_prefix ) );
+		}
+
+		return str_starts_with( $real_path, $base_prefix );
+	}
+
+	/**
+	 * Sanitizes and validates a file identifier for secure path construction.
+	 *
+	 * This method ensures the identifier is safe to use in filesystem operations
+	 * by rejecting traversal attempts and invalid characters.
+	 *
+	 * @since 1.1.10
+	 * @param string $file_id The file identifier from user input.
+	 * @return string|false The sanitized file ID if valid, false otherwise.
+	 */
+	public static function sanitize_file_identifier( string $file_id ): string|false {
+		// Reject empty identifiers
+		if ( empty( $file_id ) ) {
+			return false;
+		}
+
+		// Reject identifiers containing path traversal sequences
+		if ( strpos( $file_id, '..' ) !== false ) {
+			return false;
+		}
+
+		// Reject identifiers starting with / or containing absolute paths
+		if ( str_starts_with( $file_id, '/' ) || str_starts_with( $file_id, '\\' ) ) {
+			return false;
+		}
+
+		// Allow only safe characters (alphanumeric, hyphens, underscores, slashes, dots, and forward slashes)
+		// This prevents directory traversal and shell injection
+		if ( ! preg_match( '~^[a-zA-Z0-9/_\.\-]+$~', $file_id ) ) {
+			return false;
+		}
+
+		return sanitize_text_field( wp_unslash( $file_id ) );
+	}
+
+	/**
 	 * Returns the settings options for the plugin.
 	 *
 	 * This function defines the settings options for the plugin.

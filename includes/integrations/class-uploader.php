@@ -292,7 +292,7 @@ class Uploader {
 		if ( null === $raw_size || '' === $raw_size ) {
 			$raw_size = Helpers::get_default_max_file_size();
 		}
-		error_log( '$raw_size: ' . $raw_size );
+
 		if ( ! is_int( $raw_size ) && ! is_string( $raw_size ) ) {
 			return array(
 				'success' => false,
@@ -307,7 +307,7 @@ class Uploader {
 				'options' => array( 'min_range' => 1 ),
 			)
 		);
-		error_log( '$file_size_mb: ' . $file_size_mb );
+
 		if ( false === $file_size_mb ) {
 			return array(
 				'success' => false,

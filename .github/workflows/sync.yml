@@ -42,7 +42,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # ✅ Register 'ours' merge driver to protect PRO-only paths (like .github/**)
+          # Register merge drivers to protect PRO-only paths
           git config merge.ours.driver true
           git config merge.ours-noadd.driver true
           

@@ -20,7 +20,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: yarn
+          cache: npm
 
       - name: Cache Composer and Node Modules
         uses: actions/cache@v3
@@ -29,7 +29,7 @@ jobs:
             vendor
             node_modules
             dist
-          key: ${{ runner.os }}-build-${{ hashFiles('composer.lock', 'yarn.lock') }}
+          key: ${{ runner.os }}-build-${{ hashFiles('composer.json', 'package.json') }}
           restore-keys: |
             ${{ runner.os }}-build-
 
@@ -40,7 +40,7 @@ jobs:
           composer install --no-dev --optimize-autoloader
 
       - name: Install Node Dependencies
-        run: yarn install --frozen-lockfile
+        run: npm install
 
       - name: Build
-        run: yarn build
+        run: npm run build

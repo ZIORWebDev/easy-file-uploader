@@ -5,14 +5,14 @@
  * Description:  Enhances Elementor Pro Forms and Contact Form 7 with a drag and drop uploader for seamless file uploads.
  * Author:       ZIORWeb.Dev
  * Author URI:   https://ziorweb.dev
- * Version:      1.1.9
+ * Version:      1.1.10
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * License:      GPL-2.0-or-later
  * License URI:  https://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:  easy-file-uploader
  * Domain Path:  /languages
- * Tested up to: 6.9
+ * Tested up to: 7.1
  *
  * @package ZIORWebDev\DragDrop
  *
@@ -41,9 +41,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 
 // Initialize the plugin.
-$plugin_instance = new Plugin( __FILE__ );
-$plugin_instance->init();
+$ziorwebdev_dragdrop_plugin_instance = new Plugin( __FILE__ );
+$ziorwebdev_dragdrop_plugin_instance->init();
 
 // Activation and deactivation hooks.
-register_activation_hook( __FILE__, array( $plugin_instance, 'activate_plugin' ) );
-register_deactivation_hook( __FILE__, array( $plugin_instance, 'deactivate_plugin' ) );
+register_activation_hook( __FILE__, array( $ziorwebdev_dragdrop_plugin_instance, 'activate_plugin' ) );
+register_deactivation_hook( __FILE__, array( $ziorwebdev_dragdrop_plugin_instance, 'deactivate_plugin' ) );

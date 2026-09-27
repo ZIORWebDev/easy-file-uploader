@@ -14,7 +14,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '22'
 
       - name: Download Build Artifact
         uses: actions/download-artifact@v4
@@ -27,7 +27,7 @@ jobs:
           # Extract plugin version from PHP file
           VERSION=$(grep -i "Version:" easy-file-uploader.php | head -n 1 | sed -E 's/.*Version:[[:space:]]*//')
 
-          # Define package name manually (since no longer using package.json)
+          # Define package name manually
           PACKAGE_NAME="easy-file-uploader"
 
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
